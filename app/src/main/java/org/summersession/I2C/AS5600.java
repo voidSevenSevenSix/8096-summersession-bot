@@ -24,7 +24,7 @@ public class AS5600 {
 
     public int readRawAngle() throws Exception {
         byte[] buffer = new byte[2];
-        i2c.readRegister(0x0C, buffer);
+        i2c.readRegister(0x0E, buffer);
         return ((buffer[0] & 0x0F) << 8) | (buffer[1] & 0xFF);
     }
 

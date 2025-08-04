@@ -51,7 +51,7 @@ public class PCA9685 {
     }
 
     public void setPWM(int channel, int on, int off){
-        int reg = 0x06 + (4 * channel); //calc the frist of the 4 registers
+        int reg = 0x06 + (4 * channel); //calc the first of the 4 registers
         pca9685.writeRegister(reg, 0);
         pca9685.writeRegister(reg + 1, on >> 8);
         pca9685.writeRegister(reg + 2, 0);

@@ -1,8 +1,9 @@
 package org.summersession.motor;
 
 import org.summersession.I2C.PCA9685;
+import org.summersession.controlSystem.interfaces.MotorSpeed;
 
-public class Motor {
+public class Motor implements MotorSpeed{
     private PCA9685 controller;
     private int forwardChannel;
     private int reverseChannel;

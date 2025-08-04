@@ -12,7 +12,7 @@ public class ControlSystem {
     private Comms comms;
     private Gson gson = new Gson();
     /* Drivetrain */
-    interface QuadConsumer<T, U, V, W> {
+    public interface QuadConsumer<T, U, V, W> {
         void accept(T t, U u, V v, W w);
     }
     private Optional<QuadConsumer<Float, Float, Float, Float>> drivetrain = Optional.empty(); //left x, left y, right x, right y
@@ -29,6 +29,7 @@ public class ControlSystem {
     public Runnable down = ()->{};
     public Runnable left = ()->{};
     public Runnable right = ()->{};
+    public float leftX = 0;
 
     private LinkedList<Subsystem> registeredSubsystems = new LinkedList<Subsystem>();
 
