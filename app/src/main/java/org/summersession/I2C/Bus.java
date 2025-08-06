@@ -1,11 +1,12 @@
 /* Note: class written specifically for our configuration on the i2c bus, not designed to be reused or implementable for other configurations */
 
 /* 
- * Bus configuration
- * ID 0: BNO055 IMU
- * IDs 1-4: DRV8833 controllers
- * IDs 5-12: L298N controllers
- * IDs 13-16: AS5600 encoders
+ bus information:
+pca and tca go on the i2c bus 
+0-7 on the pca are drvs, bus ids 0, 2, 4, 6
+8-15 on the pca are 298s, bus ids 8-15
+0-3 on the tca are 5600s, bus ids 16-19
+assigned gpio on the pi are 298s, initialized in motor class
  */
 
 package org.summersession.I2C;
@@ -31,7 +32,7 @@ public class Bus {
     }
 
     public double readEncoderDegrees(int id){
-        tca9548a.setActiveChannel(id-13);
+        tca9548a.setActiveChannel(id-16);
         try{
             return as5600.readAngleDegrees();
         }
