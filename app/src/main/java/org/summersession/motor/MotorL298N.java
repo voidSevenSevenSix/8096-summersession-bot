@@ -21,40 +21,51 @@ public class MotorL298N implements MotorSpeed{
         directionChannel1 = d1;
         directionChannel2 = d2;
         this.controller = pca9685;
-        Context pi4j = Pi4J.newAutoContext();
+        /*Context pi4j = Pi4J.newAutoContext();
         var in1Config = DigitalOutput.newConfigBuilder(pi4j)
                 .address(d1) //gpio id
+                .provider("linuxfs-digital-output")
                 .build();
 
         var in2Config = DigitalOutput.newConfigBuilder(pi4j)
                 .address(d2) //gpio id
+                .provider("linuxfs-digital-output")
                 .build();
 
-        DigitalOutput in1 = pi4j.create(in1Config);
-        DigitalOutput in2 = pi4j.create(in2Config);
-        in1.low();
-        in2.low();
+        in1 = pi4j.create(in1Config);
+        in2 = pi4j.create(in2Config);
+        in1.high();
+        in2.high();*/
     }
 
     public void set(double speed){
         speed = Math.max(-1.0, Math.min(1.0, speed));
         int pwmScaled = (int)(Math.abs(speed) * 4095);
         if (speed > 0) {
-            in1.high();
-            in2.low();
+            /*in1.high();
+            in2.low();*/
+            controller.setPWM(directionChannel1, 0, 4095);
+            controller.setPWM(directionChannel2, 0, 0);
         } else if (speed < 0) {
-            in1.low();
-            in2.high();
+            /*in1.low();
+            in2.high();*/
+            controller.setPWM(directionChannel2, 0, 4095);
+            controller.setPWM(directionChannel1, 0, 0);
         } else if(brake){
-            in1.high();
-            in2.high();
+            /*in1.high();
+            in2.high();*/
+            controller.setPWM(directionChannel1, 0, 4095);
+            controller.setPWM(directionChannel2, 0, 4095);
             speed = 1.0; //cause the l298n is RETARDED
         }
         else{
-            in1.low();
-            in2.low();
+            /*in1.low();
+            in2.low();*/
+            controller.setPWM(directionChannel1, 0, 0);
+            controller.setPWM(directionChannel2, 0, 0);
         }
         controller.setPWM(speedChannel, 0, pwmScaled);
+        
     }
 
     public void stop(){

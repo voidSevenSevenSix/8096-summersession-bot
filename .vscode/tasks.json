@@ -4,7 +4,7 @@
     {
       "label": "Deploy",
       "type": "shell",
-      "command": "./gradlew shadowJar; scp app/build/libs/deploy1.jar cache@raspberrypi.local:~/main/"
+      "command": "./gradlew shadowJar; scp app/build/libs/deploy1.jar admin@raspberrypi:~/main/"
     }
   ]
 }
