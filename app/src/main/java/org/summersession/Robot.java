@@ -2,58 +2,133 @@ package org.summersession;
 
 import org.summersession.I2C.AS5600;
 import org.summersession.I2C.BNO055;
+import org.summersession.I2C.MultiplexerMinibus;
 import org.summersession.I2C.PCA9685;
 import org.summersession.I2C.TCA9548A;
 import org.summersession.controlSystem.ControlSystem;
 import org.summersession.motor.Motor;
 import org.summersession.motor.MotorL298N;
+import org.summersession.motor.Servo;
 
 public class Robot {
     /* Initialize and register subsystems and bind controls here. */
+
+    /************************* IMPORTANT **************************
+     * If you have not wired one of the i2c devices and would like to test out the rest, you MUST comment out
+     * the objects corresponding to the unwired device and all of its uses. The i2c bus will encounter errors
+     * if it expects a device that is not wired (note: it may be possible to run with those errors, and you are
+     * free to try this, but if it fails definitely follow the above instructions).
+    */
 
     public Robot() {
         /* Do not alter */
         ControlSystem robotController = new ControlSystem();
         /* End do not alter */
 
-        /* Begin bus declaration*/
-        PCA9685 motorBus0 = new PCA9685(0x40);
+        /* Begin various objects on i2c bus declarations */
+        System.out.println("Begin i2c bus declarations.");
+        PCA9685 hat0 = new PCA9685(0x40); //this is the pwm hat that does NOT have any soldered connections for address changes
+        PCA9685 hat1 = new PCA9685(0x41); //this is the pwm hat that DOES have a soldered connection for the address change - i put 0x41 but that may not be the correct address
+        TCA9548A multiplexer = new TCA9548A(0x70); //this is the i2c multiplexer, do NOT alter its i2c address. it goes DIRECTLY ON THE i2c BUS (sda and scl pins)
+        AS5600 encoder = new AS5600(); //this is all of the as5600 encoders, they all go ON THE MULTIPLEXER SDA and SCL PINS (each one for one pair). because of how they work with the multiplexer they all "share" an object, which is retarded as fuck but is the only way to make it work, which means the multiplexer selects the encoder and this object actually gets it. idk if you actaully need to understand this
+        MultiplexerMinibus multibus = new MultiplexerMinibus(multiplexer, encoder);
+        BNO055 gyro = new BNO055(); //this is the gyroscope, right now it just prints cool stuff, it goes DIRECTLY ON THE i2c BUS (sda and scl pins)
+        System.out.println("End i2c bus declarations.");
 
-        /* Begin subsystem declaration and registration */
-        /*Motor motor = new Motor(0, motorBus0);
-        Motor motor1 = new Motor(1, motorBus0);
-        Motor motor2 = new Motor(2, motorBus0);
-        Motor motor3 = new Motor(3, motorBus0);*/
-        MotorL298N motorL = new MotorL298N(0, 1, 2, motorBus0);
-        MotorL298N motorL1 = new MotorL298N(3, 4, 5, motorBus0);
-        MotorL298N motorL2 = new MotorL298N(6, 7, 8, motorBus0);
-        MotorL298N motorL3 = new MotorL298N(9, 10, 11, motorBus0);
+        /* Begin motor objects declarations */
+        /* The DRIVE motors on the L298Ns will go on the hat that did NOT have its address changed (hat0), and should be connected as follows:
+         * Motor0: EN -> 0, IN -> 1, IN -> 2
+         * Motor1: EN -> 3, IN -> 4, IN -> 5
+         * Motor2: EN -> 6, IN -> 7, IN -> 8
+         * Motor3: EN -> 9, IN -> 10, IN -> 11
+         * Switching which IN pin is connected to which PWM hat pin will determine relative direction of motor, Misha should know about this setup
+         */
+        System.out.println("Begin L298N declarations.");
+        MotorL298N driveMotor0 = new MotorL298N(0, 1, 2, hat0);
+        MotorL298N driveMotor1 = new MotorL298N(3, 4, 5, hat0);
+        MotorL298N driveMotor2 = new MotorL298N(6, 7, 8, hat0);
+        MotorL298N driveMotor3 = new MotorL298N(9, 10, 11, hat0);
+        System.out.println("End L298N declarations.");
 
-        //AS5600 as5600 = new AS5600();
-        //BNO055 bno055 = new BNO055();
-        
-        /* Begin controller bindings */
-        robotController.onX(
-            ()->{
-                
-            }
-        );
+        /* The STEERING motors on the DRV8833s will go on the hat that DID have its address changed (hat1), and should be connected as follows:
+         * Motor0: IN -> 0, IN -> 1
+         * Motor1: IN -> 2, IN -> 3
+         * Motor2: IN -> 4, IN -> 5
+         * Motor3: IN -> 6, IN -> 7
+         */
+        System.out.println("Begin DRV8833 declarations.");
+        Motor steeringMotor0 = new Motor(0, hat1);
+        Motor steeringMotor1 = new Motor(1, hat1);
+        Motor steeringMotor2 = new Motor(2, hat1);
+        Motor steeringMotor3 = new Motor(3, hat1);
+        System.out.println("End DRV8833 declarations.");
 
+        /* The SERVOS for testing will go on the hat that DID have its address changed (hat1), and should be connected as follows:
+         * Servo0: Control pin -> 8
+         */
+        Servo servo0 = new Servo(8, hat1);
+
+        /* Motor control system declaration
+         * The left joystick Y axis is a THROTTLE for the DRIVING motors
+         * The right joystick X axis is a THROTTLE for the STEERING motors
+         * This is by no means a drivetrain - it would SUCK to control and does not use PID or anything to maintain heading, but it will do for just testing the motors
+        */
+
+        System.out.println("Begin motor control system declaration.");
         ControlSystem.QuadConsumer<Float, Float, Float, Float> driveMotor = new ControlSystem.QuadConsumer<Float, Float, Float, Float>() {
             public void accept(Float leftX, Float leftY, Float rightX, Float rightY){
-                /*motor.set(leftX.floatValue());
-                motor1.set(leftX.floatValue());
-                motor2.set(leftX.floatValue());
-                motor3.set(leftX.floatValue());*/
-                motorL.set(leftX.floatValue());
-                motorL1.set(leftX.floatValue());
-                motorL2.set(leftX.floatValue());
-                motorL3.set(leftX.floatValue());
+                driveMotor0.set(leftY);
+                driveMotor1.set(leftY);
+                driveMotor2.set(leftY);
+                driveMotor3.set(leftY);
+                steeringMotor0.set(rightX);
+                steeringMotor1.set(rightX);
+                steeringMotor2.set(rightX);
+                steeringMotor3.set(rightX);
             }
         };
 
+        /* Other bindings 
+         * A -> Dumps gyroscope data
+         * B -> Increment the active encoder channel
+         * X -> Dump encoder data from active encoder
+         * Dpad Left -> Set servo to 0deg
+         * Dpad Right -> Set servo to 180deg
+        */
+        robotController.onA(
+            ()->{
+                gyro.printData();
+            }
+        );
+        robotController.onB(
+            ()->{
+                multibus.incrementChannel();
+                System.out.println("The active encoder channel is now " + multibus.chan);
+            }
+        );
+        robotController.onX(
+            ()->{
+                System.out.println("The value of the encoder on channel " + multibus.chan + " is " + multibus.getActiveAngleDeg());
+            }
+        );
+        robotController.onLeft(
+            ()->{
+                servo0.setPosition(0);
+                System.out.println("The position of servo0 has been set to 0deg.");
+            }
+        );
+        robotController.onRight(
+            ()->{
+                servo0.setPosition(180);
+                System.out.println("The position of servo0 has been set to 180deg.");
+            }
+        );
+
         robotController.setDrivetrain(driveMotor);
+        System.out.println("Motors are now all active.");
 
-
+        System.out.println("End motor control system declaration.");
+        System.out.println("The current selected encoder channel is " + multibus.chan);
+        System.out.println("Initialization thread ended.");
     }
 }

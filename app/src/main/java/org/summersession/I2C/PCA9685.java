@@ -57,4 +57,22 @@ public class PCA9685 {
         pca9685.writeRegister(reg + 2, 0);
         pca9685.writeRegister(reg + 3, off >> 8);
     }
+
+    /* Taken from online */
+    public void setServoAngle(int channel, double degrees) {
+        // Servo pulse parameters (adjust these for your specific servo)
+        final double MIN_PULSE_MS = 0.5;  // 0° position pulse width in milliseconds
+        final double MAX_PULSE_MS = 2.5;  // 180° position pulse width in milliseconds
+        final double PULSE_RANGE = MAX_PULSE_MS - MIN_PULSE_MS;
+        
+        // Calculate pulse width in milliseconds
+        double pulseWidthMs = MIN_PULSE_MS + (degrees / 180.0) * PULSE_RANGE;
+        
+        // Convert to 12-bit PCA9685 value
+        double pulseLengthMs = 1000.0 / 25.0;  // Period in ms
+        int pwmValue = (int)(4095 * (pulseWidthMs / pulseLengthMs));
+        
+        // Set PWM output (always start at 0, end at calculated value)
+        setPWM(channel, 0, pwmValue);
+    }
 }
