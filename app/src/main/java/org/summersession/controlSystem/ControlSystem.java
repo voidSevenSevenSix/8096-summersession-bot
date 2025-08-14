@@ -31,6 +31,8 @@ public class ControlSystem {
     public Runnable right = ()->{};
     public float leftX = 0;
 
+    private TimedCycleScheduler timedCycleScheduler;
+
     private LinkedList<Subsystem> registeredSubsystems = new LinkedList<Subsystem>();
 
     private Runnable controlLoop = ()->{
@@ -47,6 +49,10 @@ public class ControlSystem {
                 /* drivetrain */
                 if(drivetrain.isPresent()){
                     drivetrain.get().accept(state.leftX, state.leftY, state.rightX, state.rightY);
+                }
+                Optional<Runnable> tcsRunnable = timedCycleScheduler.getCurrentTimedCycleScheduledRunnable();
+                if(tcsRunnable.isPresent()){
+                    tcsRunnable.get().run();
                 }
                 /* i can't be bothered to think of a better way of doing this w/ discrete fields, it's too late */
                 if(state.leftTrigger){
@@ -109,6 +115,10 @@ public class ControlSystem {
 
     public void setDrivetrain(QuadConsumer<Float, Float, Float, Float> consumer){
         this.drivetrain = Optional.of(consumer);
+    }
+
+    public void setTimedCycleScheduler(TimedCycleScheduler tcs){
+        timedCycleScheduler = tcs;
     }
 
     /* could i use a map? yes. but i am trying to be consistent w/ how wpilib does it incase anyone else ever uses this so we are doing discrete methods for now */

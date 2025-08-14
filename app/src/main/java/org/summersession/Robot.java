@@ -6,6 +6,7 @@ import org.summersession.I2C.MultiplexerMinibus;
 import org.summersession.I2C.PCA9685;
 import org.summersession.I2C.TCA9548A;
 import org.summersession.controlSystem.ControlSystem;
+import org.summersession.controlSystem.TimedCycleScheduler;
 import org.summersession.motor.Motor;
 import org.summersession.motor.MotorL298N;
 import org.summersession.motor.Servo;
@@ -23,6 +24,7 @@ public class Robot {
     public Robot() {
         /* Do not alter */
         ControlSystem robotController = new ControlSystem();
+        TimedCycleScheduler tcs = new TimedCycleScheduler();
         /* End do not alter */
 
         /* Begin various objects on i2c bus declarations */
@@ -73,18 +75,39 @@ public class Robot {
          * The right joystick X axis is a THROTTLE for the STEERING motors
          * This is by no means a drivetrain - it would SUCK to control and does not use PID or anything to maintain heading, but it will do for just testing the motors
         */
-
+        DriveManager drvmgr = new DriveManager();
         System.out.println("Begin motor control system declaration.");
         ControlSystem.QuadConsumer<Float, Float, Float, Float> driveMotor = new ControlSystem.QuadConsumer<Float, Float, Float, Float>() {
             public void accept(Float leftX, Float leftY, Float rightX, Float rightY){
-                driveMotor0.set(leftY);
-                driveMotor1.set(leftY);
-                driveMotor2.set(leftY);
-                driveMotor3.set(leftY);
-                steeringMotor0.set(rightX);
-                steeringMotor1.set(rightX);
-                steeringMotor2.set(rightX);
-                steeringMotor3.set(rightX);
+                if(leftX > 0 || leftY > 0){
+                    //steering
+                    int cycles = drvmgr.calcHeadingAndReturnCycles(leftX, leftY);
+                    int sig = Integer.signum(cycles);
+                    cycles = cycles * sig;
+                    if(cycles > 0){
+                        tcs.addTimedCycleScheduledRunnable(
+                        ()->{
+                            steeringMotor0.set(sig);
+                            steeringMotor1.set(sig);
+                            steeringMotor2.set(sig);
+                            steeringMotor3.set(sig);
+                        }, cycles);
+                    tcs.addTimedCycleScheduledRunnable(
+                        ()->{
+                            steeringMotor0.set(0);
+                            steeringMotor1.set(0);
+                            steeringMotor2.set(0);
+                            steeringMotor3.set(0);
+                        }, 1);
+                    }
+                }
+                //drive
+                double power = Math.sqrt(Math.pow(leftX, 2) + Math.pow(leftY, 2))/(Math.sqrt(2));
+                double directional = power*Math.signum(leftY);
+                driveMotor0.set(directional);
+                driveMotor1.set(directional);
+                driveMotor2.set(directional);
+                driveMotor3.set(directional);
             }
         };
 
